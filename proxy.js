@@ -1,5 +1,4 @@
 var Path = require('path');
-require.paths.unshift(Path.join(__dirname, 'lib'));
 
 var Proxy = require('./index');
 

@@ -77,7 +77,7 @@ Proxy.prototype.handleControlRequest_ = function (req, res) {
 	switch (action) {
 		case 'start':
 			app.start(function (err, started) {
-				res.writeHead(!err ? 204 : 503);
+				res.writeHead(!err ? 200 : 503);
 				if (err) {
 					res.write(JSON.stringify({ "error": err.message, "started": started }));
 				} else {
@@ -88,7 +88,7 @@ Proxy.prototype.handleControlRequest_ = function (req, res) {
 			break;
 		case 'restart':
 			app.restart(function (err, started) {
-				res.writeHead(!err ? 204 : 503);
+				res.writeHead(!err ? 200 : 503);
 				if (err) {
 					res.write(JSON.stringify({ "error": err.message, "started": started }));
 				} else {

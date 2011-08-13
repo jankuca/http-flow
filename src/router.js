@@ -8,6 +8,7 @@ var App = require('./app.js');
  */
 var Router = function () {
 	this.root_ = null;
+	this.user_ = 'root';
 };
 
 /**
@@ -16,6 +17,14 @@ var Router = function () {
  */
 Router.prototype.setRoot = function (path) {
 	this.root_ = Path.resolve(process.cwd(), path);
+};
+
+/**
+ * Sets under which user should all the apps run
+ * @param {string} username The name of the user
+ */
+Router.prototype.setUser = function (username) {
+	this.user_ = username;
 };
 
 /**
@@ -33,6 +42,7 @@ Router.prototype.update_ = function () {
 
 	var self = this;
 	var root = this.root_;
+
 	FS.readdir(root, function (err, names) {
 		if (!err) {
 			if (names.length === 0) {
@@ -90,7 +100,7 @@ Router.prototype.registerAppVersionDirectory_ = function (app_dirname, version, 
 		info.dirname = dirname;
 		info.name = Path.basename(Path.resolve(dirname, '..'));
 		info.version = version;
-		var app = new App(info);
+		var app = new App(info, this.user_);
 		this.apps_.push(app);
 		console.info('-- App registered: ' + info.name + '/' + info.version + ' -> ' + port +
 			"\n   Hostnames: " + (app.getHostnames().join("\n              ") || '[none]'));
@@ -114,9 +124,26 @@ Router.prototype.getPortNumbersForAppDirectory = function (dirname) {
 };
 
 /**
+ * Returns the app matching the name and version specified
+ * @param {string} name The name of the app
+ * @param {string} version The version of the app
+ * @return {?App}
+ */
+Router.prototype.getApp = function (name, version) {
+	var apps = this.apps_;
+	for (var i = 0, ii = apps.length; i < ii; ++i) {
+		if (apps[i].getName() === name && apps[i].getVersion() === version) {
+			return apps[i];
+		}
+	}
+
+	return null;
+};
+
+/**
  * Returns the app that reserved the given hostname if there is one
  * @param {string} hostname The hostname
- * @return {App}
+ * @return {?App}
  */
 Router.prototype.getAppByHostname = function (hostname) {
 	hostname = this.normalizeHostname_(hostname);

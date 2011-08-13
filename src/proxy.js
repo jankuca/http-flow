@@ -1,10 +1,11 @@
 var FS = require('fs');
 var HTTP = require('http');
 var Path = require('path');
-var Router = require('./router.js');
+var URL = require('url');
 
 var log = require('util').log;
 
+var Router = require('./router.js');
 
 /**
  * @constructor
@@ -15,7 +16,7 @@ var Proxy = function () {
 
 /**
  * Starts the HTTP server
- * @param {number} port The port on which to listen
+ * @param {number=} port The port on which to listen
  */
 Proxy.prototype.listen = function (port) {
 	this.port = port || 80;
@@ -24,10 +25,82 @@ Proxy.prototype.listen = function (port) {
 	var server = HTTP.createServer(function (req, res) {
 		self.handleRequest_(req, res);
 	});
-	server.listen(port);
-	console.info('== The proxy is listening on port ' + port + '.');
+	server.listen(this.port);
+	console.info('== The proxy is listening on port ' + this.port + '.');
 
 	this.router.run();
+};
+
+/**
+ * Starts the controlling HTTP server
+ * @param {number=} port The port on which to listen
+ */
+Proxy.prototype.listenToControls = function (port) {
+	this.control_port = port || 1555;
+
+	var self = this;
+	var server = HTTP.createServer(function (req, res) {
+		self.handleControlRequest_(req, res);
+	});
+	server.listen(this.control_port);
+	console.info('== The proxy control is listening on port ' + this.control_port + '.');
+};
+
+/**
+ * Handles a control HTTP request
+ * @param {!http.ServerRequest} req The HTTP request
+ * @param {!http.ServerResponse} res The HTTP response to the request
+ */
+Proxy.prototype.handleControlRequest_ = function (req, res) {
+	if (req.headers.host.split(':')[0] !== 'localhost') {
+		res.writeHead(403);
+		return res.end();
+	}
+
+	var url = URL.parse(req.url, true);
+	var name = url.query['app'];
+	var version = url.query['version'];
+	if (!name || !version) {
+		res.writeHead(400);
+		res.write(JSON.stringify({ "error": "Missing app name or version" }));
+		return res.end();
+	}
+
+	var action = url.pathname.substr(1);
+	var app = this.router.getApp(name, version);
+	if (!app) {
+		res.writeHead(400);
+		res.write(JSON.stringify({ "error": "No such app (" + name + "/" + version + ")" }));
+		return res.end();
+	}
+
+	switch (action) {
+		case 'start':
+			app.start(function (err, started) {
+				res.writeHead(!err ? 204 : 503);
+				if (err) {
+					res.write(JSON.stringify({ "error": err.message, "started": started }));
+				} else {
+					res.write(JSON.stringify({ "started": started }));
+				}
+				return res.end();
+			});
+			break;
+		case 'restart':
+			app.restart(function (err, started) {
+				res.writeHead(!err ? 204 : 503);
+				if (err) {
+					res.write(JSON.stringify({ "error": err.message, "started": started }));
+				} else {
+					res.write(JSON.stringify({ "started": started }));
+				}
+				return res.end();
+			});
+			break;
+		default:
+			res.writeHead(501);
+			return res.end();
+	}
 };
 
 /**
@@ -65,7 +138,6 @@ Proxy.prototype.proxyToApp_ = function (req, res, app) {
 	var self = this;
 	request.on('error', function (err) {
 		res.writeHead(503);
-
 		var maintenance = app.getMaintenancePage(req);
 		if (maintenance) {
 			self.respondWithStaticFile_(maintenance, res);

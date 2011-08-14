@@ -109,7 +109,14 @@ Proxy.prototype.handleControlRequest_ = function (req, res) {
  * @param {!http.ServerResponse} res The HTTP response to the request
  */
 Proxy.prototype.handleRequest_ = function (req, res) {
-	var app = this.router.getAppByHostname(req.headers.host);
+	var hostname = req.headers.host;
+	if (!hostname) {
+		// No idea how this happens but it would crash the app
+		res.writeHead(400);
+		return res.end();
+	}
+
+	var app = this.router.getAppByHostname(hostname);
 	var url = 'http://' + req.headers.host + req.url;
 	if (!app) {
 		log(req.method + ' ' + url + ' -> [no route]');

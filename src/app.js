@@ -185,7 +185,7 @@ App.prototype.getFilteredByAppInfo_ = function (arr) {
 
 /**
  * Returns a list of hostnames reserved by the app
- * @return {!Array.<string>}
+ * @return {Array.<string>}
  */
 App.prototype.getHostnames = function () {
 	return this.hostnames_.concat();

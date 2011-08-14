@@ -48,8 +48,8 @@ Proxy.prototype.listenToControls = function (port) {
 
 /**
  * Handles a control HTTP request
- * @param {!http.ServerRequest} req The HTTP request
- * @param {!http.ServerResponse} res The HTTP response to the request
+ * @param {http.ServerRequest} req The HTTP request
+ * @param {http.ServerResponse} res The HTTP response to the request
  */
 Proxy.prototype.handleControlRequest_ = function (req, res) {
 	if (req.headers.host.split(':')[0] !== 'localhost') {
@@ -105,8 +105,8 @@ Proxy.prototype.handleControlRequest_ = function (req, res) {
 
 /**
  * Handles an HTTP request
- * @param {!http.ServerRequest} req The HTTP request
- * @param {!http.ServerResponse} res The HTTP response to the request
+ * @param {http.ServerRequest} req The HTTP request
+ * @param {http.ServerResponse} res The HTTP response to the request
  */
 Proxy.prototype.handleRequest_ = function (req, res) {
 	var hostname = req.headers.host;
@@ -130,9 +130,9 @@ Proxy.prototype.handleRequest_ = function (req, res) {
 
 /**
  * Passes the request to the app
- * @param {!http.ServerRequest} req The HTTP request to pass
- * @param {!http.ServerResponse} res The HTTP response to the request
- * @param {!App} app The app to which to pass the request
+ * @param {http.ServerRequest} req The HTTP request to pass
+ * @param {http.ServerResponse} res The HTTP response to the request
+ * @param {App} app The app to which to pass the request
  */
 Proxy.prototype.proxyToApp_ = function (req, res, app) {
 	var params = this.getProxyRequestParams_(req, app);
@@ -157,8 +157,8 @@ Proxy.prototype.proxyToApp_ = function (req, res, app) {
 /**
  * Response pipe factory
  * The returned function should be used as the second argument of http.request.
- * @param {!http.ServerResponse} res The response to which to pipe
- * @return {function(!http.ServerResponse)}
+ * @param {http.ServerResponse} res The response to which to pipe
+ * @return {function(http.ServerResponse)}
  */
 Proxy.prototype.createProxyResponsePipe_ = function (res) {
 	return function (response) {
@@ -174,8 +174,8 @@ Proxy.prototype.createProxyResponsePipe_ = function (res) {
 
 /**
  * Returns a map of params to be used for the proxy request
- * @param {!http.ServerRequest} req The original HTTP request
- * @param {!App} app The app to which will be the request proxied
+ * @param {http.ServerRequest} req The original HTTP request
+ * @param {App} app The app to which will be the request proxied
  * @return {!Object} A map of params
  */
 Proxy.prototype.getProxyRequestParams_ = function (req, app) {
@@ -190,7 +190,7 @@ Proxy.prototype.getProxyRequestParams_ = function (req, app) {
 
 /**
  * Returns a map of headers to be used for the proxy request
- * @param {!http.ServerRequest} req The original HTTP request
+ * @param {http.ServerRequest} req The original HTTP request
  * @return {!Object} A map of headers
  */
 Proxy.prototype.getRequestHeaders_ = function (req) {
@@ -203,7 +203,7 @@ Proxy.prototype.getRequestHeaders_ = function (req) {
 /**
  * Writes file contents to the response stream and closes the request
  * @param {string} path A file path
- * @param {!http.ServerResponse} res The HTTP response to which to write
+ * @param {http.ServerResponse} res The HTTP response to which to write
  */
 Proxy.prototype.respondWithStaticFile_ = function (path, res) {
 	Path.exists(path, function (exists) {

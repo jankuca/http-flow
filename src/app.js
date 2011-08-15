@@ -106,7 +106,7 @@ App.prototype.start = function (callback) {
 App.prototype.getStartCommand_ = function () {
 	var command = 'sudo -u ' + this.getUser() + ' ';
 	command += this.command_;
-	command += ' > ' + this.getLogPath();
+	command += ' >& ' + this.getLogPath();
 	command += ' &';
 
 	return command;

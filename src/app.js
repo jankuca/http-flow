@@ -125,7 +125,8 @@ App.prototype.getUser = function () {
  * @return {string} The log file path
  */
 App.prototype.getLogPath = function () {
-	
+	var filename = 'nohup-' + Math.round(Date.now() / 1000) + '.out';
+	return Path.join(this.info_.dirname, filename);
 };
 
 /**

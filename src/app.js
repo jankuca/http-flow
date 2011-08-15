@@ -1,5 +1,5 @@
 var Path = require('path');
-var FS = require('path');
+var FS = require('fs');
 
 var exec = require('child_process').exec;
 

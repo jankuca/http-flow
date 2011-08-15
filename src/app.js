@@ -89,6 +89,13 @@ App.prototype.start = function (callback) {
 	var proc = exec(this.getStartCommand_());
 	console.info('-- Trying to start the app ' +
 		this.getName() + '/' + this.getVersion());
+	var log = FS.createWriteStream(this.getLogPath(), { encoding: 'utf8', mode: 0775 });
+	proc.stdout.on('data', function (chunk) {
+		log.write(chunk);
+	});
+	proc.stderr.on('data', function (chunk) {
+		log.write(chunk);
+	});
 	proc.on('exit', function () {
 		if (!called) {
 			called = true;
@@ -106,7 +113,6 @@ App.prototype.start = function (callback) {
 App.prototype.getStartCommand_ = function () {
 	var command = 'sudo -u ' + this.getUser() + ' ';
 	command += this.command_;
-	command += ' >& ' + this.getLogPath();
 
 	return command;
 };
@@ -124,7 +130,7 @@ App.prototype.getUser = function () {
  * @return {string} The log file path
  */
 App.prototype.getLogPath = function () {
-	var filename = 'nohup-' + Math.round(Date.now() / 1000) + '.out';
+	var filename = '.log-' + Math.round(Date.now() / 1000) + '.out';
 	return Path.join(this.info_.dirname, filename);
 };
 

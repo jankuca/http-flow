@@ -263,7 +263,7 @@ App.prototype.updateInfo = function () {
 		});
 		return true;
 	} catch (err) {
-		console.error('-- Invalid/no proxy file provided for the app ' + Path.basename(app_dirname));
+		console.error('-- Invalid/no proxy file provided for the app ' + Path.basename(info.name));
 		return false;
 	}
 };

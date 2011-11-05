@@ -58,45 +58,57 @@ Proxy.prototype.handleControlRequest_ = function (req, res) {
 	}
 
 	var url = URL.parse(req.url, true);
-	var name = url.query['app'];
-	var version = url.query['version'];
-	if (!name || !version) {
-		res.writeHead(400);
-		res.write(JSON.stringify({ "error": "Missing app name or version" }));
-		return res.end();
-	}
-
 	var action = url.pathname.substr(1);
-	var app = this.router.getApp(name, version);
-	if (!app) {
-		res.writeHead(400);
-		res.write(JSON.stringify({ "error": "No such app (" + name + "/" + version + ")" }));
-		return res.end();
-	}
 
 	switch (action) {
 		case 'start':
-			app.start(function (err, started) {
-				res.writeHead(!err ? 200 : 503);
-				if (err) {
-					res.write(JSON.stringify({ "error": err.message, "started": started }));
-				} else {
-					res.write(JSON.stringify({ "started": started }));
-				}
-				return res.end();
-			});
-			break;
 		case 'restart':
-			app.restart(function (err, started) {
-				res.writeHead(!err ? 200 : 503);
+			var name = url.query['app'];
+			var version = url.query['version'];
+			if (!name || !version) {
+				res.writeHead(400);
+				res.write(JSON.stringify({ "error": "Missing app name or version" }));
+				return res.end();
+			}
+
+			var app = this.router.getApp(name, version);
+			if (!app) {
+				res.writeHead(400);
+				res.write(JSON.stringify({ "error": "No such app (" + name + "/" + version + ")" }));
+				return res.end();
+			}
+
+			var respond = function (err, started, log) {
+				res.writeHead(200);
 				if (err) {
-					res.write(JSON.stringify({ "error": err.message, "started": started }));
+					res.write(JSON.stringify({ "error": err.message + "\n" + log, "started": started }));
 				} else {
 					res.write(JSON.stringify({ "started": started }));
 				}
 				return res.end();
+			};
+
+			if (action === 'restart') {
+				app.restart(function (err, started, log) {
+					if (err) {
+						app.start(respond);
+					} else {
+						respond(err, started, log);
+					}
+				});
+			} else {
+				app.start(respond);
+			}
+			break;
+
+		case 'update':
+			this.router.update(function (updated) {
+				res.writeHead(200);
+				res.write(JSON.stringify({ "updated": updated }));
+				res.end();
 			});
 			break;
+
 		default:
 			res.writeHead(501);
 			return res.end();

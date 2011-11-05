@@ -8,12 +8,13 @@ var exec = require('child_process').exec;
  * @constructor
  */
 var App = function (info, user) {
-	info.hostnames = info.hostnames || [];
-	info.maintenance = info.maintenance || [];
+	info.hostnames = [];
+	info.maintenance = [];
 
 	this.info_ = info;
 	this.user_ = user;
 
+	this.updateInfo();
 	this.processCommands_();
 	this.processHostnames_();
 };
@@ -90,22 +91,29 @@ App.prototype.start = function (callback) {
 	console.info('-- Trying to start the app ' +
 		this.getName() + '/' + this.getVersion());
 	var log = FS.createWriteStream(this.getLogPath(), { encoding: 'utf8', mode: 0775 });
+	var init_log = '';
 	proc.stdout.on('data', function (chunk) {
 		log.write(chunk);
+		if (!called) {
+			init_log += chunk;
+		}
 	});
 	proc.stderr.on('data', function (chunk) {
 		log.write(chunk);
+		if (!called) {
+			init_log += chunk;
+		}
 	});
 	proc.on('exit', function () {
 		if (!called) {
 			called = true;
-			callback(new Error('The app crashed within 2s from starting up.'), false);
+			callback(new Error('The app crashed within 2s from starting up.'), false, init_log);
 		}
 	});
 	setTimeout(function () {
 		if (!called) {
 			called = true;
-			callback(null, true);
+			callback(null, true, init_log);
 		}
 	}, 2000);
 };
@@ -243,6 +251,21 @@ App.prototype.getMaintenancePage = function (req) {
 	}
 
 	return null;
+};
+
+App.prototype.updateInfo = function () {
+	var info = this.info_;
+	try {
+		var info_path = Path.join(this.info_.dirname, '.proxyinfo.json');
+		var update = JSON.parse(FS.readFileSync(info_path, 'utf8'));
+		Object.keys(update).forEach(function (key) {
+			info[key] = update[key];
+		});
+		return true;
+	} catch (err) {
+		console.error('-- Invalid/no proxy file provided for the app ' + Path.basename(app_dirname));
+		return false;
+	}
 };
 
 

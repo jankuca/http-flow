@@ -9,6 +9,7 @@ var App = require('./app.js');
 var Router = function () {
 	this.root_ = null;
 	this.user_ = 'root';
+	this.apps_ = [];
 };
 
 /**
@@ -31,14 +32,15 @@ Router.prototype.setUser = function (username) {
  * Starts the router
  */
 Router.prototype.run = function () {
-	this.update_();
+	this.update();
 };
 
 /**
  * Creates apps from an application directory
  */
-Router.prototype.update_ = function () {
+Router.prototype.update = function (callback) {
 	this.apps_ = [];
+	this.ports = {};
 
 	var self = this;
 	var root = this.root_;
@@ -53,9 +55,38 @@ Router.prototype.update_ = function () {
 			var dirnames = names.map(function (name) {
 				return Path.join(root, name);
 			});
+
+			dirnames.forEach(self.registerAppDirectoryPorts_, self);
 			dirnames.forEach(self.registerAppDirectory_, self);
+
+			if (typeof callback === 'function') {
+				callback(true);
+			}
+		} else {
+			console.error('Failed to list apps');
+			console.log(err.message);
+			if (typeof callback === 'function') {
+				callback(false);
+			}
 		}
 	});
+};
+
+Router.prototype.registerAppDirectoryPorts_ = function (dirname) {
+	var name = Path.basename(dirname);
+	var ports = this.getPortNumbersForAppDirectory(dirname);
+	Object.keys(ports).forEach(function (version) {
+		this.ports[ports[version]] = [ name, version ];
+	}, this);
+};
+
+Router.prototype.getFreePortNumber_ = function () {
+	var ports = Object.keys(this.ports).sort();
+	if (!ports.length) {
+		return 1100;
+	}
+	var port = Number(ports[ports.length - 1]);
+	return port + 1;
 };
 
 /**
@@ -69,6 +100,10 @@ Router.prototype.registerAppDirectory_ = function (dirname) {
 	FS.readdir(dirname, function (err, versions) {
 		if (!err) {
 			if (versions.indexOf('.git') === -1) {
+				versions = versions.filter(function (version) {
+					return (version[0] !== '.');
+				});
+
 				if (versions.length === 0) {
 					console.warn('-- No versions found for the app ' + name);
 					return;
@@ -76,13 +111,29 @@ Router.prototype.registerAppDirectory_ = function (dirname) {
 
 				versions.forEach(function (version) {
 					var port = Number(ports[version]);
-					if (port) {
-						self.registerAppVersionDirectory_(dirname, version, port);
+					if (!port) {
+						console.warn('-- No port specified for ' + name + '/' + version);
+						console.info('-- Trying to come up with one');
+						port = self.getFreePortNumber_();
+						self.registerPortNumber_(port, dirname, version);
 					}
+					self.registerAppVersionDirectory_(dirname, version, port);
 				});
 			}
 		}
 	});
+};
+
+Router.prototype.registerPortNumber_ = function (port, app_dirname, version) {
+	var ports = this.getPortNumbersForAppDirectory(app_dirname);
+	ports[version] = port;
+
+	var data = {
+		'ports': ports
+	};
+
+	var path = Path.join(app_dirname, '.ports.json');
+	FS.writeFileSync(path, JSON.stringify(data), 'utf8');
 };
 
 /**
@@ -93,18 +144,15 @@ Router.prototype.registerAppDirectory_ = function (dirname) {
  */
 Router.prototype.registerAppVersionDirectory_ = function (app_dirname, version, port) {
 	var dirname = version ? Path.join(app_dirname, version) : app_dirname;
-	var info_path = Path.join(dirname, '.proxyinfo.json');
-	try {
-		var info = JSON.parse(FS.readFileSync(info_path, 'utf8'));
-		info.port = port;
-		info.dirname = dirname;
-		info.name = Path.basename(Path.resolve(dirname, '..'));
-		info.version = version;
-		var app = new App(info, this.user_);
-		this.apps_.push(app);
-		console.info('-- App registered: ' + info.name + '/' + info.version + ' -> ' + port +
-			"\n   Hostnames: " + (app.getHostnames().join("\n              ") || '[none]'));
-	} catch (err) {}
+	var info = {};
+	info.port = port;
+	info.dirname = dirname;
+	info.name = Path.basename(Path.resolve(dirname, '..'));
+	info.version = version;
+	var app = new App(info, this.user_);
+	this.apps_.push(app);
+	console.info('-- App registered: ' + info.name + '/' + info.version + ' -> ' + port +
+		"\n   Hostnames: " + (app.getHostnames().join("\n              ") || '[none]'));
 };
 
 /**
@@ -117,7 +165,7 @@ Router.prototype.getPortNumbersForAppDirectory = function (dirname) {
 	try {
 		var path = Path.join(dirname, '.ports.json');
 		var data = JSON.parse(FS.readFileSync(path, 'utf8'));
-		return data.ports || {};
+		return data['ports'] || {};
 	} catch (err) {
 		return {};
 	}

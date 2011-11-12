@@ -4,6 +4,7 @@ var Path = require('path');
 var URL = require('url');
 
 var log = require('util').log;
+var gzip = require('http-gzip');
 
 var Router = require('./router.js');
 
@@ -135,6 +136,8 @@ Proxy.prototype.handleRequest_ = function (req, res) {
 		res.writeHead(404);
 		res.end();
 	} else {
+		gzip(req, res);
+
 		log(req.method + ' ' + url + ' -> ' + app.getName() + '/' + app.getVersion());
 		this.proxyToApp_(req, res, app);
 	}

@@ -4,3 +4,6 @@
 [submodule "node_modules/node-color-console"]
 	path = node_modules/node-color-console
 	url = git://gist.github.com/1127679
+[submodule "node_modules/http-gzip"]
+	path = node_modules/http-gzip
+	url = git://gist.github.com/1360787.git

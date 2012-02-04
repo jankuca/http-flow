@@ -153,9 +153,6 @@ Proxy.prototype.proxyToApp_ = function (req, res, app) {
 	var params = this.getProxyRequestParams_(req, app);
 	var request = HTTP.request(params, this.createProxyResponsePipe_(res));
 	req.pipe(request);
-	req.on('end', function () {
-		request.end();
-	});
 
 	var self = this;
 	request.on('error', function (err) {

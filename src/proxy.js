@@ -156,11 +156,12 @@ Proxy.prototype.proxyToApp_ = function (req, res, app) {
 
 	var self = this;
 	request.on('error', function (err) {
-		res.writeHead(503);
 		var maintenance = app.getMaintenancePage(req);
 		if (maintenance) {
+			res.writeHead(503, { 'content-type': 'text/html; charset=UTF-8' });
 			self.respondWithStaticFile_(maintenance, res);
 		} else {
+			res.writeHead(503);
 			res.end();
 		}
 	});

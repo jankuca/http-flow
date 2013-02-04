@@ -2,9 +2,18 @@ var FS = require('fs');
 var HTTP = require('http');
 var Path = require('path');
 var URL = require('url');
+var zlib = require('zlib');
 
 var log = require('util').log;
-var gzip = require('http-gzip');
+
+var gzip = function (req, res) {
+	var header = req.headers['accept-encoding'];
+	var accepts = Boolean(header && /gzip/i.test(header));
+	if (!accepts) return res;
+
+	var zipper = zlib.createGzip();
+	return res.pipe(zipper);
+};
 
 var Router = require('./router.js');
 
